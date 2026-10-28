@@ -1,0 +1,32 @@
+{
+  "name": "mini-finout",
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "containerEnv": {
+    "PYTHONDONTWRITEBYTECODE": "1"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python"
+      ],
+      "settings": {
+        "files.exclude": {
+          "**/__pycache__": true
+        },
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "github.copilot.chat.codeGeneration.useInstructionFiles": true,
+        "chat.useAgentsMdFile": true,
+        "task.allowAutomaticTasks": "on"
+      }
+    }
+  },
+  "forwardPorts": [
+    8080
+  ],
+  "portsAttributes": {
+    "8080": {
+      "label": "mini-finout app",
+      "onAutoForward": "openBrowser"
+    }
+  }
+}

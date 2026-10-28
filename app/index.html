@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mini-finout</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --nav: #0b1526; --nav-ink: #c3ccd9; --nav-active: #27344a;
+    --bg: #f3f4f7; --panel: #fff; --ink: #1f2937; --muted: #6b7280; --line: #e5e7eb; --brand: #2e6be6;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; display: flex; font: 13px/1.45 Inter, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; color: var(--ink); background: var(--bg); }
+
+  /* sidebar */
+  nav { width: 190px; flex: none; background: var(--nav); color: var(--nav-ink); padding: 18px 8px; display: flex; flex-direction: column; gap: 2px; }
+  nav .logo { display: flex; align-items: center; gap: 8px; color: #fff; font-weight: 700; font-size: 20px; padding: 0 12px 18px; letter-spacing: .2px; }
+  nav .logo i { width: 18px; height: 18px; border: 2.5px solid #2fd0a0; border-radius: 4px 12px 4px 12px; display: inline-block; }
+  nav a { display: flex; align-items: center; gap: 9px; padding: 8px 12px; border-radius: 8px; color: inherit; text-decoration: none; font-size: 13px; }
+  nav a::before { content: ""; width: 12px; height: 12px; border: 1.5px solid currentColor; border-radius: 3px; opacity: .8; }
+  nav a.active { background: var(--nav-active); color: #fff; font-weight: 600; }
+  nav a.active::before { border-radius: 50%; background: #fff; }
+
+  /* main column */
+  .page { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .topbar { height: 50px; flex: none; display: flex; align-items: center; gap: 10px; padding: 0 20px; background: var(--panel); border-bottom: 1px solid var(--line); }
+  .topbar .title { font-weight: 600; font-size: 14px; }
+  .topbar .spacer { flex: 1; }
+  .topbar .status { color: var(--muted); font-size: 12px; margin-right: 8px; }
+  .topbar .avatar { width: 26px; height: 26px; border-radius: 50%; background: #2fd0a0; color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 12px; }
+  .topbar .user { font-weight: 500; }
+
+  main { padding: 14px 16px 40px; display: flex; flex-direction: column; gap: 12px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+
+  /* buttons & inputs, finout-flavoured */
+  .btn, select, input[type=search] { font: inherit; font-size: 13px; height: 32px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); }
+  .btn { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; white-space: nowrap; }
+  .k { color: var(--muted); }
+
+  .toolbar { display: flex; align-items: center; gap: 8px; padding: 12px 14px; flex-wrap: wrap; }
+  .toolbar .spacer { flex: 1; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 8px; background: #eaf0fd; color: #1e429f; font-size: 12px; cursor: pointer; }
+  .chip:hover { background: #dbe6fb; }
+
+  .stats { display: flex; align-items: center; gap: 0; padding: 14px 14px 6px; flex-wrap: wrap; }
+  .stat { padding: 0 20px 0 0; margin-right: 20px; border-right: 1px solid var(--line); }
+  .stat:last-of-type { border-right: none; }
+  .stat .label { color: var(--muted); font-size: 12px; }
+  .stat .value { font-size: 18px; font-weight: 600; margin-top: 2px; }
+  .stats .spacer { flex: 1; }
+  .groupby { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 6px 0 12px; border: 1px solid var(--line); border-radius: 8px; }
+  .groupby b { font-weight: 500; }
+  .groupby select { border: none; height: 28px; padding: 0 4px; background: #f3f4f7; border-radius: 6px; font-weight: 500; }
+
+  .chart { padding: 6px 14px 4px; }
+  .chart canvas { max-height: 330px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; padding: 6px 14px 14px; color: var(--muted); font-size: 12px; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+  .legend span i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+  .legend .end { margin-left: auto; color: var(--brand); }
+
+  .tablebar { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--line); color: var(--muted); }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); white-space: nowrap; }
+  th:last-child, td:last-child { border-right: none; }
+  th { color: var(--ink); font-weight: 600; font-size: 12px; background: #fafafa; }
+  td.name { font-weight: 500; cursor: pointer; }
+  td.name:hover { color: var(--brand); }
+  td.name i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; margin-right: 8px; vertical-align: -1px; }
+  td.num, th.num { font-variant-numeric: tabular-nums; }
+  td.total { font-weight: 600; }
+  tr.sum td { font-weight: 600; background: #fafafa; border-top: 2px solid var(--line); }
+  tr:hover td { background: #fafbfd; }
+  .pct { color: var(--muted); }
+  .empty { padding: 40px; text-align: center; color: var(--muted); }
+  .error { margin: 14px; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; padding: 14px 16px; border-radius: 10px; }
+  code { background: #f1f3f7; padding: 1px 6px; border-radius: 5px; }
+  .notice { background: #eff6ff; border-color: #bfdbfe; color: #1e40af; padding: 12px 14px; }
+
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo"><i></i>finout</div>
+  <a class="active">Cost Explorer</a>
+</nav>
+
+<div class="page">
+  <div class="topbar">
+    <span class="title">Cost Explorer</span>
+    <div class="spacer"></div>
+    <span class="status" id="status"></span>
+    <span class="avatar">A</span><span class="user">Acme Corp</span>
+  </div>
+
+  <main id="main">
+    <div class="card notice" id="notice" hidden></div>
+
+    <div class="card">
+      <div class="toolbar">
+        <span class="k">From</span><select id="dateFrom"></select>
+        <span class="k">To</span><select id="dateTo"></select>
+        <div class="chips" id="chips"></div>
+        <div class="spacer"></div>
+        <input type="search" id="search" placeholder="Search name...">
+        <button class="btn" id="reset">Reset</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="stats" id="stats"></div>
+      <div class="chart"><canvas id="dailyChart"></canvas></div>
+      <div class="legend" id="legend"></div>
+    </div>
+
+    <div class="card">
+      <div class="tablebar"><span id="tableHint"></span></div>
+      <div class="table-wrap"><table id="table"></table></div>
+    </div>
+  </main>
+</div>
+
+<script>
+const PALETTE = ["#2ca58d", "#f57f4b", "#a9e2ea", "#f0c419", "#e1447b", "#a78bfa", "#2f5fd6", "#4c2fd9", "#9ccff5", "#e05252", "#f7b58f", "#1d9c7a"];
+const FIXED_COLORS = { platform: "#2f5fd6", data: "#2ca58d", growth: "#f0c419", ml: "#e1447b", unallocated: "#9aa4b2" };
+const money = (n, digits = 0) => "$" + n.toLocaleString(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits });
+const $ = (id) => document.getElementById(id);
+
+let allRows = [];
+let filters = {};              // "source" | "team" | "service" -> value
+let dateFrom = null, dateTo = null, search = "";
+let groupBy = "team";
+let hidden = new Set();        // legend toggles
+let dailyChart;
+
+function valueOf(row, column) {
+  return row[column];
+}
+
+function groupOptions() {
+  return [["source", "source"], ["team", "team"], ["service", "service"]];
+}
+
+function allDates() {
+  return [...new Set(allRows.map(r => r.date))].sort().filter(d => (!dateFrom || d >= dateFrom) && (!dateTo || d <= dateTo));
+}
+
+function visibleRows() {
+  return allRows.filter(r =>
+    (!dateFrom || r.date >= dateFrom) && (!dateTo || r.date <= dateTo) &&
+    Object.entries(filters).every(([col, val]) => valueOf(r, col) === val) &&
+    !hidden.has(valueOf(r, groupBy)) &&
+    (!search || String(valueOf(r, groupBy)).toLowerCase().includes(search))
+  );
+}
+
+function sumBy(rows, keyFn) {
+  const out = new Map();
+  rows.forEach(r => { const k = keyFn(r); out.set(k, (out.get(k) || 0) + r.cost); });
+  return out;
+}
+
+// groups sorted by cost, colour assigned by rank so the legend, bars and table always agree
+function groupsOf(rows) {
+  const totals = [...sumBy(rows, r => valueOf(r, groupBy)).entries()].sort((a, b) => b[1] - a[1]);
+  return totals.map(([name, cost], i) => ({ name, cost, color: FIXED_COLORS[name] || PALETTE[i % PALETTE.length] }));
+}
+
+function render() {
+  const rows = visibleRows();
+  const groups = groupsOf(rows);
+  renderChips();
+  renderStats(rows);
+  renderChart(rows, groups);
+  renderLegend(groups);
+  renderTable(rows, groups);
+}
+
+function renderChips() {
+  $("chips").innerHTML = Object.entries(filters).map(([col, val]) =>
+    `<span class="chip" data-col="${col}">${col}: <b>${val}</b> ✕</span>`).join("");
+  $("chips").querySelectorAll(".chip").forEach(el => el.onclick = () => { delete filters[el.dataset.col]; render(); });
+}
+
+function renderStats(rows) {
+  const total = rows.reduce((s, r) => s + r.cost, 0);
+  const grand = allRows.filter(r => (!dateFrom || r.date >= dateFrom) && (!dateTo || r.date <= dateTo)).reduce((s, r) => s + r.cost, 0);
+  const days = allDates().length || 1;
+  const stats = [
+    ["Total Cost", money(total, 2)],
+    ["Share of Total Cost", (grand ? 100 * total / grand : 0).toFixed(0) + "%"],
+    ["Average Daily Cost", money(total / days, 2)],
+  ];
+  const options = groupOptions().map(([v, l]) => `<option value="${v}" ${v === groupBy ? "selected" : ""}>${l}</option>`).join("");
+  $("stats").innerHTML = stats.map(([l, v]) => `<div class="stat"><div class="label">${l}</div><div class="value">${v}</div></div>`).join("")
+    + `<div class="spacer"></div>
+       <div class="groupby"><b>Group By</b><select id="groupBy">${options}</select></div>`;
+  $("groupBy").onchange = e => { groupBy = e.target.value; hidden.clear(); render(); };
+}
+
+function renderChart(rows, groups) {
+  const dates = allDates();
+  const datasets = groups.map(g => ({
+    label: g.name, backgroundColor: g.color, borderRadius: 2, maxBarThickness: 46,
+    data: dates.map(d => rows.filter(r => r.date === d && valueOf(r, groupBy) === g.name).reduce((s, r) => s + r.cost, 0)),
+  }));
+  if (dailyChart) dailyChart.destroy();
+  dailyChart = new Chart($("dailyChart"), {
+    type: "bar",
+    data: { labels: dates.map(d => new Date(d).toLocaleDateString(undefined, { month: "short", day: "numeric" })), datasets },
+    options: {
+      responsive: true, animation: { duration: 250 },
+      scales: {
+        x: { stacked: true, grid: { display: false }, ticks: { color: "#6b7280", maxRotation: 45 } },
+        y: { stacked: true, grid: { color: "#eef0f3" }, ticks: { color: "#6b7280", callback: v => "$" + (v >= 1000 ? (v / 1000) + "K" : v) } },
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: {
+          label: c => ` ${c.dataset.label}: ${money(c.parsed.y, 2)}`,
+          footer: items => `Day total: ${money(datasets.reduce((s, ds) => s + ds.data[items[0].dataIndex], 0), 2)}`,
+        } },
+      },
+      onClick: (_, elements) => {
+        if (!elements.length) return;
+        filters[groupBy] = datasets[elements[0].datasetIndex].label;
+        dateFrom = dateTo = dates[elements[0].index];
+        syncDateSelects();
+        render();
+      },
+    },
+  });
+}
+
+function renderLegend(groups) {
+  const all = groupsOf(allRows.filter(r => Object.entries(filters).every(([c, v]) => valueOf(r, c) === v)));
+  $("legend").innerHTML = `<span style="cursor:default"><i style="background:#cbd5e1"></i>Total</span>` +
+    all.map(g => `<span data-g="${g.name}" style="${hidden.has(g.name) ? "opacity:.4" : ""}"><i style="background:${g.color}"></i>${g.name}</span>`).join("") +
+    `<span class="end" id="unselect">${hidden.size ? "Select all" : "Unselect all"}</span>`;
+  $("legend").querySelectorAll("[data-g]").forEach(el => el.onclick = () => { hidden.has(el.dataset.g) ? hidden.delete(el.dataset.g) : hidden.add(el.dataset.g); render(); });
+  $("unselect").onclick = () => { if (hidden.size) hidden.clear(); else all.forEach(g => hidden.add(g.name)); render(); };
+}
+
+function renderTable(rows, groups) {
+  const dates = allDates();
+  const total = rows.reduce((s, r) => s + r.cost, 0);
+  const label = d => new Date(d).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  const head = `<th>Name</th>` +
+    dates.map(d => `<th class="num">${label(d)}</th>`).join("") +
+    `<th class="num">Total cost</th><th class="num">Percentage of total</th>`;
+  const body = groups.map(g => {
+    const perDay = dates.map(d => rows.filter(r => r.date === d && valueOf(r, groupBy) === g.name).reduce((s, r) => s + r.cost, 0));
+    return `<tr>
+      <td class="name" data-g="${g.name}"><i style="background:${g.color}"></i>${g.name}</td>
+      ${perDay.map(c => `<td class="num">${money(c, 2)}</td>`).join("")}
+      <td class="num total">${money(g.cost, 2)}</td>
+      <td class="num pct">${total ? (100 * g.cost / total).toFixed(1) : 0}%</td></tr>`;
+  }).join("");
+  const perDayTotal = sumBy(rows, r => r.date);
+  const totalRow = `<tr class="sum"><td>Total</td>
+    ${dates.map(d => `<td class="num">${money(perDayTotal.get(d) || 0, 2)}</td>`).join("")}
+    <td class="num">${money(total, 2)}</td><td class="num pct">${total ? "100.0" : 0}%</td></tr>`;
+  $("tableHint").textContent = `${groups.length} rows · grouped by ${groupBy} · click a name to filter`;
+  $("table").innerHTML = `<thead><tr>${head}</tr></thead><tbody>${body ? body + totalRow : `<tr><td colspan="${dates.length + 3}" class="empty">nothing matches</td></tr>`}</tbody>`;
+  $("table").querySelectorAll("td.name").forEach(el => el.onclick = () => { filters[groupBy] = el.dataset.g; render(); });
+}
+
+function syncDateSelects() {
+  const dates = [...new Set(allRows.map(r => r.date))].sort();
+  const options = dates.map(d => `<option value="${d}">${d}</option>`).join("");
+  $("dateFrom").innerHTML = options; $("dateTo").innerHTML = options;
+  $("dateFrom").value = dateFrom || dates[0]; $("dateTo").value = dateTo || dates[dates.length - 1];
+}
+
+function resetAll() {
+  filters = {}; dateFrom = null; dateTo = null; search = ""; hidden.clear();
+  $("search").value = "";
+  syncDateSelects();
+  render();
+}
+
+async function load() {
+  const response = await fetch("/api/unified-data");
+  const payload = await response.json();
+  if (!response.ok) {
+    $("main").innerHTML = `<div class="error"><b>Could not load your pipeline's output.</b> ${payload.error}<br>Run your pipeline, then refresh.</div>`;
+    return;
+  }
+  allRows = payload.rows;
+  if (payload.example) {
+    $("notice").innerHTML = `<b>Example data.</b> This is what the dashboard looks like with output in it - the numbers are fake. It is replaced as soon as your pipeline writes its own CSV to <code>s3-storage-mock/output/</code>.`;
+    $("notice").hidden = false;
+  }
+  $("status").textContent = `${allRows.length} rows · loaded ${new Date().toLocaleTimeString()}`;
+  $("dateFrom").onchange = e => { dateFrom = e.target.value; render(); };
+  $("dateTo").onchange = e => { dateTo = e.target.value; render(); };
+  $("search").oninput = e => { search = e.target.value.trim().toLowerCase(); render(); };
+  $("reset").onclick = resetAll;
+  resetAll();
+}
+
+load();
+</script>
+</body>
+</html>

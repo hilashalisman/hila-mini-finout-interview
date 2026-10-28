@@ -1,0 +1,10 @@
+s3-storage-mock/*
+!s3-storage-mock/README.md
+!s3-storage-mock/output/
+s3-storage-mock/output/*
+!s3-storage-mock/output/example.csv
+.venv/
+__pycache__/
+.DS_Store
+*.egg-info/
+.idea/
